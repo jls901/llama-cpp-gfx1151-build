@@ -33,7 +33,7 @@ ENV LLAMA_HIPBLAS=ON \
     HSA_ENABLE_SIWA=0 \
     CMAKE_BUILD_TYPE=Release
 
-RUN cmake -B build -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DGGML_HIP=ON -DLLAMA_HIPBLAS=${LLAMA_HIPBLAS} -DCMAKE_HIP_ARCHITECTURES=gfx1151 -DAMDGPU_TARGETS=gfx1151 -DGGML_NATIVE=ON -DGGML_HIP_GRAPHS=ON -DLLAMA_BUILD=ON -DLLAMA_TESTS=OFF && cmake --build build --config Release -j$(nproc)
+RUN cmake -B build -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DGGML_HIP=ON -DLLAMA_HIPBLAS=${LLAMA_HIPBLAS} -DCMAKE_HIP_ARCHITECTURES=gfx1151 -DAMDGPU_TARGETS=gfx1151 -DGGML_NATIVE=ON -DGGML_HIP_GRAPHS=ON -DLLAMA_BUILD=ON -DBUILD_SHARED_LIBS=OFF -DLLAMA_TESTS=OFF && cmake --build build --config Release -j$(nproc)
 
 FROM base AS runtime
 
@@ -46,9 +46,12 @@ COPY --from=builder /opt/llama.cpp/build/bin/llama-server /usr/local/bin/llama-s
 COPY --from=builder /opt/llama.cpp/build/bin/llama-cli /usr/local/bin/llama-cli
 COPY --from=builder /opt/llama.cpp/build/bin/llama-bench /usr/local/bin/llama-bench
 COPY --from=builder /opt/llama.cpp/build/bin/llama-perplexity /usr/local/bin/llama-perplexity
+COPY --from=builder /opt/llama.cpp/build/bin/lib*-impl.so /usr/local/lib/
+COPY --from=builder /opt/llama.cpp/build/bin/libggml*.so* /usr/local/lib/
+COPY --from=builder /opt/llama.cpp/build/bin/libllama*.so* /usr/local/lib/
+COPY --from=builder /opt/llama.cpp/build/bin/libmtmd.so* /usr/local/lib/
 
-ENV HSA_ENABLE_SIWA=0
-ENV AMDGPU_TARGETS=gfx1151
+RUN ldconfig
 
 EXPOSE 8080
 
