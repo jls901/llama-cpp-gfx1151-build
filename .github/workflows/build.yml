@@ -13,7 +13,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build:
+  build-rocm:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -36,7 +36,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push runtime image
+      - name: Build and push ROCm runtime image
         uses: docker/build-push-action@v5
         with:
           target: runtime
@@ -44,6 +44,43 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ env.IMAGE_NAME }}:latest
+            ghcr.io/${{ env.IMAGE_NAME }}:rocm
+            ghcr.io/${{ env.IMAGE_NAME }}:rocm-${{ github.sha }}
             ghcr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-vulkan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo docker system prune -af
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          df -h /
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Vulkan runtime image
+        uses: docker/build-push-action@v5
+        with:
+          target: vulkan-runtime
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ env.IMAGE_NAME }}:vulkan
+            ghcr.io/${{ env.IMAGE_NAME }}:vulkan-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
